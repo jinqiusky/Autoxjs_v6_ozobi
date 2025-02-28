@@ -27,6 +27,17 @@ class ScriptCanvasView(context: Context, private val mScriptRuntime: ScriptRunti
     private var mDrawingThreadPool: ExecutorService? = null
     @Volatile
     private var mTimePerDraw = (1000 / 30).toLong()
+    
+    private var mCanvas:Canvas? = null
+    private var isClearCanvas = false
+
+    fun setCanvas(canvas: Canvas){
+        mCanvas = canvas
+    }
+    fun clearCanvas(){
+        isClearCanvas = true
+    }
+    // <
 
     val maxListeners: Int
         get() = mEventEmitter.maxListeners

@@ -1,5 +1,6 @@
 package org.autojs.autoxjs.ui.floating.layoutinspector
  
+import android.annotation.SuppressLint
 import android.content.Context
 import android.util.AttributeSet
 import android.view.LayoutInflater
@@ -10,7 +11,6 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.snackbar.Snackbar
 import com.stardust.util.ClipboardUtil
-import com.stardust.util.sortedArrayOf
 import com.stardust.view.accessibility.NodeInfo
 import com.yqritc.recyclerviewflexibledivider.HorizontalDividerItemDecoration
 import org.autojs.autoxjs.R
@@ -36,6 +36,7 @@ class NodeInfoView : RecyclerView {
         init()
     }
 
+    @SuppressLint("NotifyDataSetChanged")
     fun setNodeInfo(nodeInfo: NodeInfo) {
         for (i in FIELDS.indices) {
             try {
@@ -49,11 +50,15 @@ class NodeInfoView : RecyclerView {
     }
 
     private fun init() {
+        var color = 0x1e000000
         initData()
         adapter = Adapter()
+        if(nightMode){
+            color = 0x1edddddd
+        }
         layoutManager = LinearLayoutManager(context)
         addItemDecoration(HorizontalDividerItemDecoration.Builder(context)
-                .color(0x1e000000)
+                .color(color)
                 .size(2)
                 .build())
     }
@@ -74,7 +79,15 @@ class NodeInfoView : RecyclerView {
 
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-            val layoutRes = if (viewType == VIEW_TYPE_HEADER) R.layout.node_info_view_header else R.layout.node_info_view_item
+            
+            var itemResource = R.layout.node_info_view_item
+            var headerResource = R.layout.node_info_view_header
+            if(nightMode){
+                itemResource = R.layout.node_info_view_item_night
+                headerResource = R.layout.node_info_view_header_night
+            }
+            // <
+            val layoutRes = if (viewType == VIEW_TYPE_HEADER) itemResource else headerResource
             return ViewHolder(LayoutInflater.from(parent.context).inflate(layoutRes, parent, false))
         }
 
@@ -102,22 +115,25 @@ class NodeInfoView : RecyclerView {
                 val pos = adapterPosition
                 if (pos < 1 || pos >= mData.size)
                     return@setOnClickListener
-                // Modified by ozobi - 2025/01/17 > 复制 nodeInfo 属性格式问题 >
+                
+                var text = mData[pos][0] + "(\"" + mData[pos][1] + "\")"
                 if(mData[pos][0] == "bounds"){
-                    ClipboardUtil.setClip(context, mData[pos][0] + mData[pos][1])
+                    text = mData[pos][0] + mData[pos][1]
                 }else if(mData[pos][1] == "true" || mData[pos][1] == "false" || mData[pos][1].toIntOrNull() != null){
-                    ClipboardUtil.setClip(context, mData[pos][0] + "(" + mData[pos][1] + ")")
-                }else{
-                    ClipboardUtil.setClip(context, mData[pos][0] + "(\"" + mData[pos][1] + "\")")
-                }// <
+                    text = mData[pos][0] + "(" + mData[pos][1] + ")"
+                }
+                ClipboardUtil.setClip(context, text)
+                // <
                 Snackbar.make(this@NodeInfoView, R.string.text_already_copy_to_clip, Snackbar.LENGTH_SHORT).show()
             }
         }
     }
 
     companion object {
+        
+        var nightMode = false
+        // <
 
-//        private val FIELD_NAMES = sortedArrayOf( //Modified by ozobi - 2024/11/03 > 将常用节点属性往上排
         private val FIELD_NAMES = arrayOf(
             "packageName",
             "className",
@@ -136,7 +152,7 @@ class NodeInfoView : RecyclerView {
             "selected",
             "enabled",
             "longClickable",
-            "visibleToUser",// Added by ozobi - 2024/10/07 > added : "visibleToUser"
+            "visibleToUser",
             "idHex",
             "accessibilityFocused",
             "column",

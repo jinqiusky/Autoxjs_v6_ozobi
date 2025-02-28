@@ -2,11 +2,8 @@ package com.stardust.autojs.core.ozobi.capture
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.util.Log
 import android.widget.Toast
 import com.stardust.autojs.core.image.ImageWrapper
-import com.stardust.autojs.core.image.capture.ScreenCaptureManager
-import com.stardust.autojs.core.image.capture.ScreenCaptureRequester
 import com.stardust.autojs.runtime.api.Images
 import com.stardust.util.ViewUtil
 import kotlinx.coroutines.Dispatchers
@@ -14,7 +11,6 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlin.math.absoluteValue
 
-// Created by ozobi - 2025/01/13
 
 class ScreenCapture( private val mContext: Context) {
 //    private val mScreenCaptureRequester: ScreenCaptureRequester = ScreenCaptureManager()
@@ -47,7 +43,8 @@ class ScreenCapture( private val mContext: Context) {
                 captureScreen(false)
                 Images.availale = true
             }catch(e:Exception){
-                Log.d("ozobiLog",e.toString())
+                Images.availale = false
+                
             }
         }.isSuccess
     }
@@ -69,7 +66,7 @@ class ScreenCapture( private val mContext: Context) {
         var pos = 5
         for(index in IntRange(statusBar,min)){
             if(pos > min){
-                Log.d("ozobiLog","大概率无效截图: min: $min")
+                
                 withContext(Dispatchers.Main){
                     Toast.makeText(mContext,"鉴定:无效截图",Toast.LENGTH_LONG).show()
                 }
@@ -77,7 +74,7 @@ class ScreenCapture( private val mContext: Context) {
             }
             val pixel = bitmap.getPixel(pos,pos)
             if(pixel != -16777216 && pixel != -1644826){
-                Log.d("ozobiLog","有效截图: $index pixel: "+bitmap.getPixel(pos,pos))
+                
                 return true
             }
             pos += 10
@@ -98,7 +95,7 @@ class ScreenCapture( private val mContext: Context) {
                 isDoneVerity = true
                 if(isCurImgBitmapValid){
                     curImgBitmap = curImg!!.bitmap
-                    Log.d("ozobiLog","ScreenCapture: 当前截图已更新")
+                    
                 }
                 return@runBlocking curImg!!
             }else{

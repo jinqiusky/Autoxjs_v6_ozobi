@@ -1,13 +1,13 @@
 package org.autojs.autoxjs.ui.floating.gesture;
 
-import androidx.annotation.NonNull;
-import androidx.core.view.GestureDetectorCompat;
-
 import android.annotation.SuppressLint;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
+
+import androidx.annotation.NonNull;
+import androidx.core.view.GestureDetectorCompat;
 
 import com.stardust.enhancedfloaty.WindowBridge;
 
@@ -26,6 +26,10 @@ public class DragGesture extends GestureDetector.SimpleOnGestureListener {
     private float mInitialTouchX;
     private float mInitialTouchY;
     private View.OnClickListener mOnClickListener;
+    
+    private View.OnTouchListener mOnTouchListener;
+    public boolean isStuckToSide = false;
+    // <
     private boolean mAutoKeepToEdge;
     private float mPressedAlpha = 1.0f;
     private float mUnpressedAlpha = 0.4f;
@@ -63,7 +67,8 @@ public class DragGesture extends GestureDetector.SimpleOnGestureListener {
     protected boolean onTheEdge() {
         int dX1 = Math.abs(mWindowBridge.getX());
         int dX2 = Math.abs(mWindowBridge.getX() - mWindowBridge.getScreenWidth());
-        return Math.min(dX1, dX2) < 5;
+        isStuckToSide = Math.min(dX1, dX2) < 5;
+        return isStuckToSide;
     }
 
     public float getPressedAlpha() {
@@ -139,4 +144,16 @@ public class DragGesture extends GestureDetector.SimpleOnGestureListener {
     public void setOnDraggedViewClickListener(View.OnClickListener onClickListener) {
         mOnClickListener = onClickListener;
     }
+    
+    @Override
+    public boolean onSingleTapUp(@NonNull MotionEvent e){
+        if (mOnTouchListener != null)
+            mOnTouchListener.onTouch(mView,e);
+        return super.onSingleTapUp(e);
+    }
+
+    public void setOnDraggedViewTouchListener(View.OnTouchListener onTouchListener){
+        mOnTouchListener = onTouchListener;
+    }
+    // <
 }

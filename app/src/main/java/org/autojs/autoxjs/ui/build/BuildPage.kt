@@ -80,6 +80,7 @@ import com.stardust.pio.PFile
 import com.stardust.pio.PFiles
 import com.stardust.util.IntentUtil
 import org.autojs.autoxjs.Pref
+import org.autojs.autoxjs.R
 import org.autojs.autoxjs.build.ApkKeyStore
 import org.autojs.autoxjs.build.ApkSigner
 import org.autojs.autoxjs.external.fileprovider.AppFileProvider
@@ -87,7 +88,6 @@ import org.autojs.autoxjs.theme.dialog.ThemeColorMaterialDialogBuilder
 import org.autojs.autoxjs.ui.compose.widget.ProgressDialog
 import org.autojs.autoxjs.ui.filechooser.FileChooserDialogBuilder
 import org.autojs.autoxjs.ui.shortcut.ShortcutIconSelectResult
-import org.autojs.autoxjs.R
 import java.io.File
 import kotlin.reflect.KMutableProperty0
 
@@ -726,7 +726,6 @@ fun chooseSign(
     val keyStoreList = ApkSigner.loadKeyStore()
     //默认选中位置
     val selectedIndex = currentKeyStore?.let { getSelectIndex(it, keyStoreList) } ?: 0
-
     DialogUtils.showDialog(
         ThemeColorMaterialDialogBuilder(context)
             .title(R.string.text_sign_choose)

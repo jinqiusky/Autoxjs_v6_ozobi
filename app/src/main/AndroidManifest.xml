@@ -10,6 +10,7 @@
         android:required="false" />
 
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.BROADCAST_CLOSE_SYSTEM_DIALOGS" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="com.android.launcher.permission.INSTALL_SHORTCUT" />
@@ -415,12 +416,13 @@
         <activity
             android:name="org.autojs.autoxjs.ui.main.MainActivity"
             android:exported="true"
-            android:launchMode="singleTask" />
+            android:launchMode="singleTask"/>
         <activity
             android:name="org.autojs.autoxjs.external.shortcut.ShortcutActivity"
             android:exported="true"
             android:taskAffinity="org.autojs.autojs.external.shortcut.ShortcutActivity"
-            android:theme="@android:style/Theme.NoDisplay">
+            android:theme="@android:style/Theme.NoDisplay"
+            android:configChanges="orientation|screenSize|keyboardHidden">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -533,18 +535,6 @@
                 <action android:name="android.service.quicksettings.action.QS_TILE" />
             </intent-filter>
         </service>
-<!--        Added by ozobi - 2024/11/10 >添加设备管理员 -->
-<!--        <receiver android:name=".OzobiDeviceAdminReceiver"-->
-<!--            android:permission="android.permission.BIND_DEVICE_ADMIN">-->
-<!--            <meta-data android:name="android.app.device_admin"-->
-<!--                android:resource="@xml/device_admin" />-->
-<!--            <intent-filter>-->
-<!--                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />-->
-<!--                <action android:name="android.app.action.DEVICE_ADMIN_DISABLE_REQUESTED" />-->
-<!--                <action android:name="android.app.action.DEVICE_ADMIN_DISABLED" />-->
-<!--            </intent-filter>-->
-<!--        </receiver>-->
-<!--        // < -->
         <receiver
             android:name="org.autojs.autoxjs.external.receiver.StaticBroadcastReceiver"
             android:exported="false">

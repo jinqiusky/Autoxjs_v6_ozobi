@@ -4,13 +4,14 @@ import android.app.admin.DeviceAdminReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
-import com.stardust.autojs.runtime.DeviceAdminReceiverMsg;
 
 import androidx.annotation.NonNull;
 
+import com.stardust.autojs.runtime.DeviceAdminReceiverMsg;
+
 import java.util.Date;
 
-/* Created by ozobi - 2024/11/10
+/* Created by Ozobi - 2024/11/10
 * */
 public class OzobiDeviceAdminReceiver extends DeviceAdminReceiver {
 

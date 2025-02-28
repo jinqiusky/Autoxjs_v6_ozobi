@@ -7,7 +7,18 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsBottomHeight
+import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.SideEffect
@@ -26,8 +37,8 @@ import coil.compose.rememberAsyncImagePainter
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import org.autojs.autoxjs.ui.main.MainActivity
 import org.autojs.autoxjs.R
+import org.autojs.autoxjs.ui.main.MainActivity
 
 /**
  * Created by Stardust on 2017/7/7.
@@ -91,7 +102,15 @@ class SplashActivity : ComponentActivity() {
                     color = Color(0xdd000000),
                     fontSize = 14.sp,
                     modifier = Modifier
-                        .padding(12.dp)
+                        .padding(6.dp)
+                        .align(Alignment.CenterHorizontally)
+                )
+                Text(
+                    text = "Modified by Ozobi",
+                    color = Color(0xf69C7CFF),
+                    fontSize = 12.sp,
+                    modifier = Modifier
+                        .padding(0.dp,0.dp,0.dp,10.dp)
                         .align(Alignment.CenterHorizontally)
                 )
                 Spacer(

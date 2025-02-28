@@ -158,6 +158,12 @@ public class Floaty {
             );
         }
 
+        
+        public View getContentView(){
+            return mWindow.getContentView();
+        }
+        // <
+
         public void setTouchable(boolean touchable) {
             runWithWindow(() -> mWindow.setTouchable(touchable));
         }
@@ -256,6 +262,11 @@ public class Floaty {
             );
         }
 
+        
+        public View getContentView(){
+            return mView;
+        }
+        // <
 
         private void runWithWindow(Runnable r) {
             if (mWindow == null) return;

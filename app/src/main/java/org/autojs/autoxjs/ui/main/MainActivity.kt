@@ -1,12 +1,11 @@
 package org.autojs.autoxjs.ui.main
 
 import android.Manifest
-import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
+import android.os.Looper
 import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
@@ -38,7 +37,7 @@ import org.autojs.autoxjs.Pref
 import org.autojs.autoxjs.R
 import org.autojs.autoxjs.autojs.AutoJs
 import org.autojs.autoxjs.external.foreground.ForegroundService
-import org.autojs.autoxjs.network.CaptureServiceConnection
+import org.autojs.autoxjs.network.MessengerServiceConnection
 import org.autojs.autoxjs.timing.TimedTaskScheduler
 import org.autojs.autoxjs.ui.build.ProjectConfigActivity
 import org.autojs.autoxjs.ui.build.ProjectConfigActivity_
@@ -51,6 +50,7 @@ import org.autojs.autoxjs.ui.floating.FloatyWindowManger
 import org.autojs.autoxjs.ui.main.components.DocumentPageMenuButton
 import org.autojs.autoxjs.ui.main.components.LogButton
 import org.autojs.autoxjs.ui.main.drawer.DrawerPage
+import org.autojs.autoxjs.ui.main.drawer.isNightMode
 import org.autojs.autoxjs.ui.main.scripts.ScriptListFragment
 import org.autojs.autoxjs.ui.main.task.TaskManagerFragmentKt
 import org.autojs.autoxjs.ui.main.web.EditorAppManager
@@ -76,6 +76,7 @@ class MainActivity : FragmentActivity() {
 
     @OptIn(ExperimentalPermissionsApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
+
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
@@ -87,17 +88,17 @@ class MainActivity : FragmentActivity() {
             else Pref.setFloatingMenuShown(false)
         }
 
-        // Added by ozobi - 2025/01/12 > 绑定自定义 Messenger 服务
-        val serviceConnection = CaptureServiceConnection()
+        
+        val serviceConnection =
+            MessengerServiceConnection(Looper.getMainLooper())
         val intent = Intent("com.stardust.autojs.messengerAction")
-        intent.setPackage("org.autojs.autoxjs.ozobi.v6")
+        intent.setPackage(this.packageName)
         bindService(intent, serviceConnection, BIND_AUTO_CREATE)
-        Log.d("ozobiLog","MainActivity: 绑定自定义 Messenger 服务")
+        
         // >
-
         setContent {
             scope = rememberCoroutineScope()
-            AutoXJsTheme {
+            AutoXJsTheme{
                 Surface(color = MaterialTheme.colors.background) {
                     val permission = rememberExternalStoragePermissionsState {
                         if (it) {
@@ -492,7 +493,7 @@ private fun NewDirectory(
     }) {
         MyIcon(
             painter = painterResource(id = R.drawable.ic_floating_action_menu_dir),
-            contentDescription = null
+            contentDescription = null, nightMode = isNightMode()
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(text = stringResource(id = R.string.text_directory))
@@ -519,7 +520,7 @@ private fun NewFile(
     }) {
         MyIcon(
             painter = painterResource(id = R.drawable.ic_floating_action_menu_file),
-            contentDescription = null
+            contentDescription = null, nightMode = isNightMode()
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(text = stringResource(id = R.string.text_file))
@@ -546,7 +547,7 @@ private fun ImportFile(
     }) {
         MyIcon(
             painter = painterResource(id = R.drawable.ic_floating_action_menu_open),
-            contentDescription = null
+            contentDescription = null, nightMode = isNightMode()
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(text = stringResource(id = R.string.text_import))
@@ -571,7 +572,7 @@ private fun NewProject(
     }) {
         MyIcon(
             painter = painterResource(id = R.drawable.ic_project2),
-            contentDescription = null
+            contentDescription = null, nightMode = isNightMode()
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(text = stringResource(id = R.string.text_project))

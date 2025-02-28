@@ -5,15 +5,9 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.content.res.Resources
 import android.graphics.Rect
-import android.util.Log
-import androidx.annotation.Keep
 import android.view.accessibility.AccessibilityNodeInfo
-
+import androidx.annotation.Keep
 import com.stardust.automator.UiObject
-
-import java.util.ArrayList
-import java.util.Date
-import java.util.HashMap
 
 /**
  * Created by Stardust on 2017/3/10.
@@ -110,7 +104,6 @@ class NodeInfo(resources: Resources?, node: UiObject, var parent: NodeInfo?) {
     fun getChildren(): List<NodeInfo> {
         return children
     }
-
     override fun toString(): String {
         return className + "{" +
                 "childCount=" + children.size +
@@ -150,43 +143,64 @@ class NodeInfo(resources: Resources?, node: UiObject, var parent: NodeInfo?) {
     companion object {
 
         fun boundsToString(rect: Rect): String {
-            // Modified by ozobi - 2024/11/03
+            
             return rect.toString().replace(" - ",", ").substring(4)
 //            return rect.toString().replace('-', ',').replace(" ", "").substring(4)
         }
 
+        
+        var isRefresh = false
+        var nodeCount = 0
+        // <
 
         internal fun capture(resourcesCache: HashMap<String, Resources>, context: Context, uiObject: UiObject, parent: NodeInfo?): NodeInfo {
-            // Annotated by ozobi - 2024/10/31 >
-//            val pkg = uiObject.packageName()
-//            var resources: Resources? = null
-//            if (pkg != null) {
-//                resources = resourcesCache[pkg]
-//                if (resources == null) {
-//                    try {
-//                        resources = context.packageManager.getResourcesForApplication(pkg)
-//                        resourcesCache[pkg] = resources
-//                    } catch (e: PackageManager.NameNotFoundException) {
-//                        e.printStackTrace()
-//                    }
-//                }
-//            }
+            
+            var resources: Resources? = null
+            if(isRefresh){
+                val pkg = uiObject.packageName()
+                if (pkg != null) {
+                    resources = resourcesCache[pkg]
+                    if (resources == null) {
+                        try {
+                            resources = context.packageManager.getResourcesForApplication(pkg)
+                            resourcesCache[pkg] = resources
+                        } catch (e: PackageManager.NameNotFoundException) {
+                            e.printStackTrace()
+                        }
+                    }
+                }
+            }
             // <
-            val nodeInfo = NodeInfo(null, uiObject, parent)
+            val nodeInfo = NodeInfo(resources, uiObject, parent)
+            if(isDoneCapture){
+                return nodeInfo
+            }
             val childCount = uiObject.childCount
+            
+            nodeCount ++
+            //
             for (i in 0 until childCount) {
                 val child = uiObject.child(i)
                 if (child != null) {
+
                     nodeInfo.children.add(capture(resourcesCache, context, child, nodeInfo))
                 }
             }
+
             return nodeInfo
         }
-
+        var isDoneCapture = false
         fun capture(context: Context, root: AccessibilityNodeInfo): NodeInfo {
+            
+            nodeCount = 0
+            isDoneCapture = false
+            //
             val r = UiObject.createRoot(root)
             val resourcesCache = HashMap<String, Resources>()
-            return capture(resourcesCache, context, r, null)
+            val node = capture(resourcesCache, context, r, null)
+            isDoneCapture = true
+
+            return node
         }
     }
 }

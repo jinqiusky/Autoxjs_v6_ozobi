@@ -3,12 +3,13 @@ package org.autojs.autoxjs.ui.widget;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
-import androidx.recyclerview.widget.RecyclerView;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 import android.widget.TextView;
+
+import androidx.recyclerview.widget.RecyclerView;
 
 import org.autojs.autoxjs.R;
 
@@ -28,13 +29,24 @@ public class BubblePopupMenu extends PopupWindow {
     private RecyclerView mRecyclerView;
     private OnItemClickListener mOnItemClickListener;
     private View mLittleTriangle;
+    
+    public static boolean nightMode = false;
+    // <
 
     public BubblePopupMenu(Context context, List<String> options) {
         super(context);
-        View view = View.inflate(context, R.layout.bubble_popup_menu, null);
+        
+        int menuResource = R.layout.bubble_popup_menu;
+        int itemResource = R.layout.bubble_popup_menu_item;
+        if(nightMode){
+            menuResource = R.layout.bubble_popup_menu_night;
+            itemResource = R.layout.bubble_popup_menu_item_night;
+        }
+        // <
+        View view = View.inflate(context, menuResource , null);
         mLittleTriangle = view.findViewById(R.id.little_triangle);
         mRecyclerView = (RecyclerView) view.findViewById(R.id.list);
-        mRecyclerView.setAdapter(new SimpleRecyclerViewAdapter<>(R.layout.bubble_popup_menu_item, options, MenuItemViewHolder::new));
+        mRecyclerView.setAdapter(new SimpleRecyclerViewAdapter<>(itemResource, options, MenuItemViewHolder::new));
         setContentView(view);
         setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
         setOutsideTouchable(true);

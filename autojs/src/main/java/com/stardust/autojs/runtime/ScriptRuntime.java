@@ -23,7 +23,6 @@ import com.stardust.autojs.core.looper.Loopers;
 import com.stardust.autojs.core.ozobi.adbkeyboard.AdbIME;
 import com.stardust.autojs.core.ozobi.database.AddInfoDatabaseHelper;
 import com.stardust.autojs.core.ozobi.database.AddInfoDatabaseManager;
-import com.stardust.autojs.core.ozobi.inputevent.SendEventCommand;
 import com.stardust.autojs.core.ozobi.remoteadb.AdbShell;
 import com.stardust.autojs.core.ozobi.shizuku.OzobiShizuku;
 import com.stardust.autojs.core.permission.Permissions;
@@ -77,7 +76,9 @@ import java.lang.ref.WeakReference;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.stardust.util.ozobi;
+import com.stardust.util.ViewUtil;
+import com.stardust.util.ViewUtils;
+import com.stardust.util.Ozobi;
 
 /**
  * Created by Stardust on 2017/1/27.
@@ -176,7 +177,7 @@ public class ScriptRuntime {
     @ScriptVariable
     public Device device;
 
-    // Added by ozobi - 2024/11/10 >
+    
     @ScriptVariable
     public DeviceAdminReceiverMsg deviceAdminReceiverMsg;
 
@@ -193,7 +194,9 @@ public class ScriptRuntime {
     public AdbIME adbIMEShellCommand;
 
     @ScriptVariable
-    public SendEventCommand sendeventCommand;
+    public ViewUtils viewUtils;
+//    @ScriptVariable
+//    public SendEventCommand sendeventCommand;
     // <
     @ScriptVariable
     public final AccessibilityBridge accessibilityBridge;
@@ -260,13 +263,14 @@ public class ScriptRuntime {
         engines = new Engines(builder.mEngineService, this);
         dialogs = new Dialogs(this);
         device = new Device(context);
-        // Added by ozobi - 2024/11/10 >
+        
         deviceAdminReceiverMsg = DeviceAdminReceiverMsg.INSTANCE;
         devicePolicyManager = DevicePolicyManager.INSTANCE;
         dbHelper = new AddInfoDatabaseHelper(context);
         dbManager = new AddInfoDatabaseManager(dbHelper);
         adbIMEShellCommand = new AdbIME();
-        sendeventCommand = new SendEventCommand(getApplicationContext());
+        viewUtils = new ViewUtils();
+//        sendeventCommand = new SendEventCommand(getApplicationContext());
         // <
         floaty = new Floaty(uiHandler, ui, this);
         files = new Files(this);
@@ -286,18 +290,18 @@ public class ScriptRuntime {
         events = new Events(uiHandler.getContext(), accessibilityBridge, this);
         mThread = Thread.currentThread();
         sensors = new Sensors(uiHandler.getContext(), this);
-        Log.d(logTag,"ScriptRuntime: init");
+        
         if(OzobiShizuku.Companion.getBinder() == null){
             new OzobiShizuku().checkPermission();
         }else{
             boolean isBinderAlive = OzobiShizuku.Companion.getBinder().isBinderAlive();
-            Log.d(logTag,"ScriptRuntime: init: is Shizuku BinderAlive: "+ isBinderAlive);
+            
         }
-        // Added by ozobi - 2025/01/26 > Adb键盘
+        
         AdbIME.packageName = getApplicationContext().getPackageName();
         // <
     }
-    // Added by ozobi - 2025/01/19 >
+    
     public static AdbShell adbConnect(String host,int port){
         return new AdbShell(getApplicationContext(),host,port);
     }
@@ -333,7 +337,11 @@ public class ScriptRuntime {
         return intent;
     }
     // <
-
+    
+    public static int getStatusBarHeight(){
+        return ViewUtil.getStatusBarHeight(getApplicationContext());
+    }
+    // <
     public TopLevelScope getTopLevelScope() {
         return mTopLevelScope;
     }
@@ -559,10 +567,6 @@ public class ScriptRuntime {
 
     public Continuation createContinuation(Scriptable scope) {
         return Continuation.Companion.create(this, scope);
-    }
-
-    public static String getOzobiString(){
-        return ozobi.INSTANCE.getOzobiString();
     }
 
     public static String getStackTrace(Throwable e, boolean printJavaStackTrace) {

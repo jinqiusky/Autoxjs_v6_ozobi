@@ -37,7 +37,6 @@ open class BuildActivity : ComponentActivity() {
          * @param sourcePath 可能是项目目录，也可能是脚本文件
          */
         fun start(context: Context, sourcePath: String?) {
-            // Annotated by ozobi - 2024/11/11 > 移除打包
             context.startActivity(getIntent(context, sourcePath))
             return
         }

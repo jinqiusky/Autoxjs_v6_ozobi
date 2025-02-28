@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.OrientationEventListener;
 import android.view.View;
 import android.view.WindowManager;
@@ -29,6 +30,9 @@ public class CircularMenuWindow extends FloatyWindow {
     protected WindowManager.LayoutParams mActionViewWindowLayoutParams;
     protected WindowManager.LayoutParams mMenuWindowLayoutParams;
     protected View.OnClickListener mActionViewOnClickListener;
+    
+    protected View.OnTouchListener mActionViewOnTouchListener;
+    // <
     protected float mKeepToSideHiddenWidthRadio;
     protected float mActiveAlpha = 1.0F;
     protected float mInactiveAlpha = 0.4F;
@@ -109,7 +113,6 @@ public class CircularMenuWindow extends FloatyWindow {
         layoutParams.gravity = Gravity.LEFT | Gravity.TOP;
         return layoutParams;
     }
-
     private void setListeners() {
         setOnActionViewClickListener(v -> {
             if (isExpanded()) {
@@ -117,12 +120,30 @@ public class CircularMenuWindow extends FloatyWindow {
             } else {
                 expand();
             }
-
+            
         });
+        
+        setOnActionViewTouchListener((v,e)->{
+             if(e.getAction() == MotionEvent.ACTION_UP){
+                 
+                if (isExpanded()) {
+                    collapse();
+                } else {
+                    expand();
+                }
+                v.performClick();
+            }
+            return true;
+        });
+        // <
         if (mActionViewOnClickListener != null) {
             mDragGesture.setOnDraggedViewClickListener(mActionViewOnClickListener);
         }
-
+        
+        if(mActionViewOnClickListener != null){
+            mDragGesture.setOnDraggedViewTouchListener(mActionViewOnTouchListener);
+        }
+        // <
         mCircularActionMenu.addOnStateChangeListener(new CircularActionMenu.OnStateChangeListenerAdapter() {
             public void onCollapsed(CircularActionMenu menu) {
                 mCircularActionView.setAlpha(mInactiveAlpha);
@@ -141,7 +162,20 @@ public class CircularMenuWindow extends FloatyWindow {
             mDragGesture.setOnDraggedViewClickListener(listener);
         }
     }
-
+    
+    public void setOnActionViewTouchListener(View.OnTouchListener listener){
+        if (mDragGesture == null) {
+            mActionViewOnTouchListener = listener;
+        } else {
+            mDragGesture.setOnDraggedViewTouchListener(listener);
+        }
+    }
+    // <
+    
+    public void setAlpha(float alpha){
+        mCircularActionMenu.setAlpha(alpha);
+    }
+    // <
     public void expand() {
         mDragGesture.setEnabled(false);
         setMenuPositionAtActionView();
@@ -150,7 +184,6 @@ public class CircularMenuWindow extends FloatyWindow {
         } else {
             mCircularActionMenu.expand(5);
         }
-
     }
 
     public void setActiveAlpha(float activeAlpha) {
@@ -168,6 +201,8 @@ public class CircularMenuWindow extends FloatyWindow {
         }
 
     }
+
+
 
     public void collapse() {
         mDragGesture.setEnabled(true);

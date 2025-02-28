@@ -1,8 +1,21 @@
 package org.autojs.autoxjs.ui.compose.widget
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.*
+import androidx.compose.material.AlertDialog
+import androidx.compose.material.CircularProgressIndicator
+import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Surface
+import androidx.compose.material.Text
+import androidx.compose.material.TextButton
+import androidx.compose.material.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -22,6 +35,15 @@ fun AskSaveDialog(
     onDismissClick: () -> Unit
 ) {
     if (isShowDialog) {
+        
+//        val context = LocalContext.current
+//        val bg = if(PreferenceManager.getDefaultSharedPreferences(context)
+
+//            Theme.DARK.ordinal
+//        }else{
+//            Theme.LIGHT.ordinal
+//        }
+        // <
         AlertDialog(
             onDismissRequest = onDismissRequest,
             title = { Text(text = stringResource(id = R.string.text_alert)) },
@@ -41,7 +63,8 @@ fun AskSaveDialog(
                         Text(text = stringResource(id = R.string.text_cancel))
                     }
                 }
-            }
+            },
+//            backgroundColor = Color(bg)
         )
     }
 }

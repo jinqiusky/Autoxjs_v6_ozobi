@@ -33,8 +33,8 @@ android {
         applicationId = "org.autojs.autoxjs"
         minSdk = versions.mini
         targetSdk = versions.target
-        versionCode = 6582
-        versionName = "6.5.8.2"
+        versionCode = 6589
+        versionName = "6.5.8.9"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 //        multiDexEnabled = true
         buildConfigField("boolean", "isMarket", "false")
@@ -89,7 +89,7 @@ android {
             reset()
 
             // Specifies a list of ABIs that Gradle should create APKs for.
-            include("armeabi-v7a", "arm64-v8a")
+            include("armeabi-v7a", "arm64-v8a") // Annotated by ozobi - 2025/02/23 > 注释则不单独生成这两个apk
 
             // Specifies that we do not want to also generate a universal APK that includes all ABIs.
             isUniversalApk = true
@@ -127,7 +127,7 @@ android {
     flavorDimensions.add("channel")
     productFlavors {
         create("common") {
-            versionCode = 6582
+            versionCode = 6589
             versionName = versions.appVersionName
             buildConfigField("String", "CHANNEL", "\"common\"")
 //            buildConfigField("String", "APPID", "\"?id=21\"")

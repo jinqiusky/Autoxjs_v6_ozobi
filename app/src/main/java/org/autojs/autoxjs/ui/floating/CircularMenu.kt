@@ -1,7 +1,6 @@
 package org.autojs.autoxjs.ui.floating
 
 import android.annotation.SuppressLint
-import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.media.MediaPlayer
@@ -12,10 +11,11 @@ import android.os.Handler
 import android.os.Looper
 import android.os.Vibrator
 import android.text.TextUtils
-import android.util.Log
 import android.view.ContextThemeWrapper
+import android.view.MotionEvent
 import android.view.View
 import android.widget.Toast
+import androidx.preference.PreferenceManager
 import butterknife.ButterKnife
 import butterknife.OnClick
 import butterknife.Optional
@@ -28,6 +28,7 @@ import com.stardust.autojs.runtime.api.Images
 import com.stardust.enhancedfloaty.FloatyService
 import com.stardust.enhancedfloaty.FloatyWindow
 import com.stardust.util.ClipboardUtil
+import com.stardust.util.Ozobi
 import com.stardust.view.accessibility.AccessibilityService.Companion.instance
 import com.stardust.view.accessibility.LayoutInspector.CaptureAvailableListener
 import com.stardust.view.accessibility.NodeInfo
@@ -76,14 +77,25 @@ class CircularMenu(context: Context?) : Recorder.OnStateChangedListener, Capture
     private var mLastLayoutInspectDialog: MaterialDialog? = null
     private var mCaptureDelayDialog: MaterialDialog? = null
     private val mVibrator:Vibrator = mContext.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
-    private var mLastRefreshCount = 0
-    private var mLastCostTime:Long = 0L
     private var mLastCapture:NodeInfo? = null
     private val mLayoutInspector = AutoJs.getInstance().layoutInspector
     private var mIsmCaptureDelayDialogDisappeared = true
     private var isStartCaptureCountDown = false
     private var isStartCapture = false
     private var screenCapture:ScreenCapture = ScreenCapture(mContext)
+    private var isCaptureScreenshot = PreferenceManager.getDefaultSharedPreferences(mContext)
+        .getBoolean(mContext.getString(R.string.ozobi_key_isCapture_Screenshot), false)
+    private var isRefresh = PreferenceManager.getDefaultSharedPreferences(mContext)
+        .getBoolean(mContext.getString(R.string.ozobi_key_isCapture_refresh), false)
+    private var isWaitForCapture = PreferenceManager.getDefaultSharedPreferences(mContext)
+        .getBoolean(mContext.getString(R.string.ozobi_key_isWaitFor_capture), true)
+    private var isDelayCapture = PreferenceManager.getDefaultSharedPreferences(mContext)
+        .getBoolean(mContext.getString(R.string.ozobi_key_isDelay_capture), false)
+    private var captureCostTime = 0L
+    private var captureStartTime = 0L
+    private var isCapturing = false
+    private var available = true
+    private var isAuth = false
     // <
     private var mRunningPackage: String? = null
     private var mRunningActivity: String? = null
@@ -91,28 +103,67 @@ class CircularMenu(context: Context?) : Recorder.OnStateChangedListener, Capture
 
     @OptIn(DelicateCoroutinesApi::class)
     private fun setupListeners() {
-        mWindow?.setOnActionViewClickListener {
-            if (mState == STATE_RECORDING) {
-                stopRecord()
-            } else if (mWindow?.isExpanded == true) {
-                mWindow?.collapse()
-            } else {
-                mCaptureDeferred = DeferredObject()
-                //AutoJs.getInstance().layoutInspector.captureCurrentWindow() //ozobi: Moved down
-                // Added by ozobi - 2025/01/13 > 将布局范围分析的背景设置为捕获时的截图
-                GlobalScope.launch {
-                    if(isStartCapture){
-                        screenCapture.stopScreenCapturer()
-                        isStartCapture = false
-                    }else{
-                        if(!Images.availale || ScreenCapture.curOrientation != mContext.resources.configuration.orientation){
-                            screenCapture.requestScreenCapture(mContext.resources.configuration.orientation)
-                            Log.d("ozobiLog","CircularMenu: screenCapture.requestScreenCapture")
-                        }
-                    }
-                }// <
-                mWindow?.expand()
+        mWindow?.setOnActionViewTouchListener { v, event ->
+             if(event.action == MotionEvent.ACTION_UP){
+                 LayoutHierarchyFloatyWindow.firstTagNodeInfo = null
+                 LayoutHierarchyFloatyWindow.secondTagNodeInfo = null
+                 v.performClick()
+                 if (mState == STATE_RECORDING) {
+                     stopRecord()
+                 } else if (mWindow?.isExpanded == true) {
+                    mWindow?.collapse()
+                 } else {
+                     mWindow?.expand()
+                     if(isAuth){
+                         isCaptureScreenshot = PreferenceManager.getDefaultSharedPreferences(mContext)
+                             .getBoolean(mContext.getString(R.string.ozobi_key_isCapture_Screenshot), false)
+                         isRefresh = PreferenceManager.getDefaultSharedPreferences(mContext)
+                             .getBoolean(mContext.getString(R.string.ozobi_key_isCapture_refresh), false)
+                         isWaitForCapture = PreferenceManager.getDefaultSharedPreferences(mContext)
+                             .getBoolean(mContext.getString(R.string.ozobi_key_isWaitFor_capture), true)
+                         isDelayCapture = PreferenceManager.getDefaultSharedPreferences(mContext)
+                             .getBoolean(mContext.getString(R.string.ozobi_key_isDelay_capture), false)
+                         
+                         if(isCaptureScreenshot){
+                             if(!Images.availale){
+                                 screenCapture.stopScreenCapturer()
+                                 stopCapture()
+                             }
+                             GlobalScope.launch {
+                                 if(!Images.availale || ScreenCapture.curOrientation != mContext.resources.configuration.orientation){
+                                     screenCapture.requestScreenCapture(mContext.resources.configuration.orientation)
+
+                                 }
+                             }
+                         }
+                     }
+                     if(isRefresh || isWaitForCapture){
+                         NodeInfo.isDoneCapture = false
+                     }
+                     mLayoutInspector.setRefresh(isRefresh)
+                     mCaptureDeferred = DeferredObject()
+                     if(!isRefresh && !isStartCapture && !isCapturing && !isDelayCapture){
+                         captureStartTime = System.currentTimeMillis()
+                         available = mLayoutInspector.captureCurrentWindow()
+                         if(available){
+                             isCapturing = true
+                             checkIsCaptureDone()
+                         }
+                     }else{
+                         if(NodeInfo.isDoneCapture || ((isDelayCapture||isRefresh) && !isStartCapture)){
+                             mWindow?.setAlpha(1f)
+                         }else{
+                             mWindow?.setAlpha(0.7f)
+                         }
+                     }
+                     // <
+                 }
             }
+            return@setOnActionViewTouchListener true
+        }
+        
+        mWindow?.setOnActionViewClickListener {
+
         }
     }
 
@@ -218,20 +269,19 @@ class CircularMenu(context: Context?) : Recorder.OnStateChangedListener, Capture
     }
     private fun playDoneCapturingSound(context: Context) {
         try{
-            val mediaPlayer = MediaPlayer.create(context, R.raw.ibozo_done_capturing_ringtone)
+            val mediaPlayer = MediaPlayer.create(context, R.raw.ozobi_done_capturing_ringtone)
             mediaPlayer.start()
             mediaPlayer.setOnCompletionListener { mp ->
                 mp.release()
             }
         }catch(e:Exception){
-            Log.d("autoxjsv6",e.toString())
+            
             playNotificationSound(context)
         }
     }
     @OptIn(DelicateCoroutinesApi::class)
     @Optional
-    @OnClick(R.id.layout_inspect)
-    fun showCaptureOption(){
+    fun showDelayCaptureOption(){
         if(isStartCapture){
             Thread {
                 Looper.prepare()
@@ -246,11 +296,15 @@ class CircularMenu(context: Context?) : Recorder.OnStateChangedListener, Capture
                     Looper.loop()
                 }.start()
                 withContext(Dispatchers.Main){
-                    Toast.makeText(mContext,"正在刷新",Toast.LENGTH_SHORT).show()
+                    Toast.makeText(mContext,"正在捕获",Toast.LENGTH_SHORT).show()
                 }
             }
             return
         }
+//        if(!isRefresh){
+//            startRightNow()
+//            return
+//        }
         mCaptureDelayDialog = OperationDialogBuilder(mContext)
             .item(
                 R.id.capture_delay_0s,
@@ -287,68 +341,68 @@ class CircularMenu(context: Context?) : Recorder.OnStateChangedListener, Capture
         mIsmCaptureDelayDialogDisappeared = false
         DialogUtils.showDialog(mCaptureDelayDialog)
     }
+
     @OptIn(DelicateCoroutinesApi::class)
+    @Optional
+    @OnClick(R.id.layout_inspect)
+    fun captureWindow(){
+        mWindow?.collapse()
+        if(!available){
+            goToAccePage()
+            return
+        }
+        if(mLayoutInspector.isAvailable() != null){
+            if(isDelayCapture){
+                showDelayCaptureOption()
+            }else{
+                GlobalScope.launch {
+                    inspectLayout()
+                }
+            }
+        }else{
+            goToAccePage()
+        }
+    }
+    @OptIn(DelicateCoroutinesApi::class)
+    fun checkIsCaptureDone(){
+        val start = System.currentTimeMillis()
+        mWindow?.setAlpha(0.7f)
+        GlobalScope.launch {
+            while(!NodeInfo.isDoneCapture && System.currentTimeMillis() - start < 60000){
+                delay(100L)
+
+                isCapturing = false
+                captureCostTime = System.currentTimeMillis() - captureStartTime
+            }
+            mWindow?.setAlpha(1f)
+        }
+    }
     @Optional
     @OnClick(R.id.capture_delay_0s)
     fun startRightNow(){
-        if(!isStartCaptureCountDown) {
-            startCaptureCountDown()
-            GlobalScope.launch {
-                delay(200L)
-                inspectLayout()
-            }
-        }else{
-            GlobalScope.launch {
-                withContext(Dispatchers.Main){
-                    Toast.makeText(mContext,"倒计时中...",Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
+        delayCapture(200L)
     }
-    @OptIn(DelicateCoroutinesApi::class)
     @Optional
     @OnClick(R.id.capture_delay_2s)
     fun delayTwoSeconds(){
-        if(!isStartCaptureCountDown){
-            startCaptureCountDown()
-            GlobalScope.launch {
-                delay(2000L)
-                inspectLayout()
-            }
-        }else{
-            GlobalScope.launch {
-                withContext(Dispatchers.Main){
-                    Toast.makeText(mContext,"倒计时中...",Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
+        delayCapture(2000L)
     }
-    @OptIn(DelicateCoroutinesApi::class)
     @Optional
     @OnClick(R.id.capture_delay_4s)
     fun delayFourSeconds(){
-        if(!isStartCaptureCountDown) {
-            startCaptureCountDown()
-            GlobalScope.launch {
-                delay(4000L)
-                inspectLayout()
-            }
-        }else{
-            GlobalScope.launch {
-                withContext(Dispatchers.Main){
-                    Toast.makeText(mContext,"倒计时中...",Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
+        delayCapture(4000L)
     }
-    @OptIn(DelicateCoroutinesApi::class)
     @Optional
     @OnClick(R.id.capture_delay_8s)
     fun delayEightSeconds(){
-        if(!isStartCaptureCountDown) {
+        delayCapture(8000L)
+    }
+    @OptIn(DelicateCoroutinesApi::class)
+    fun delayCapture(delay:Long){
+        if(!isStartCaptureCountDown){
             startCaptureCountDown()
             GlobalScope.launch {
-                delay(8000L)
+                delay(delay)
                 inspectLayout()
             }
         }else{
@@ -394,8 +448,8 @@ class CircularMenu(context: Context?) : Recorder.OnStateChangedListener, Capture
             .build()
         DialogUtils.showDialog(mLastLayoutInspectDialog)
     }
-    private fun showInspectorDialog(refreshCount:Int, costTime:Long){
-        mWindow?.collapse()
+
+    private fun showInspectorDialog(){
         mLayoutInspectDialog = OperationDialogBuilder(mContext)
             .item(
                 R.id.layout_bounds,
@@ -410,74 +464,112 @@ class CircularMenu(context: Context?) : Recorder.OnStateChangedListener, Capture
             .item(
                 R.id.capture_info,
                 R.drawable.ic_ali_log,
-                "刷新数量: $refreshCount\n总耗时: $costTime ms"
+                "节点数量: ${NodeInfo.nodeCount}\n总耗时: $captureCostTime ms"
             )
             .bindItemClick(this)
             .title(R.string.text_inspect_layout)
             .build()
         DialogUtils.showDialog(mLayoutInspectDialog)
     }
-
     // <
     // Modified by ibozo - 2024/11/02 >
     //    @OnClick(R.id.layout_inspect)
     //    @Optional
     @OptIn(DelicateCoroutinesApi::class)
     private suspend fun inspectLayout() {
-        isStartCapture = true
-        isStartCaptureCountDown = false
-        while (!mIsmCaptureDelayDialogDisappeared){
-            delay(100L)
-            mCaptureDelayDialog?.dismiss()
-            mCaptureDelayDialog = null
-        }
-        Thread {
-            Looper.prepare()
-            mVibrator.vibrate(90)
-            Looper.loop()
-        }.start()
-        GlobalScope.launch {
-            // Added by ozobi - 2025/01/13 > 将布局范围分析的背景设置为捕获时的截图
-            try{
-                screenCapture.captureScreen(true)
-                Log.d("ozobiLog","截图成功")
-            }catch (e:Exception){
-                Log.d("ozobiLog", "e: $e")
-                ScreenCapture.cleanCurImg()
-                ScreenCapture.cleanCurImgBitmap()
-                Images.availale = false
+        if(isStartCapture){
+            Thread {
+                Looper.prepare()
+                mVibrator.vibrate(90)
+                Looper.loop()
+            }.start()
+            GlobalScope.launch {
+                withContext(Dispatchers.Main){
+                    Toast.makeText(mContext,"正在捕获",Toast.LENGTH_SHORT).show()
+                }
             }
-            // <
-        }
-        val start = System.currentTimeMillis()
-        mLastRefreshCount = mLayoutInspector.captureCurrentWindow()
-        if(mLastRefreshCount == -1){
-            AccessibilityServiceTool.goToAccessibilitySetting()
             return
         }
-        var waitCount = 0
-        while(true){
-            delay(100L)
-            waitCount++
-            if((mLayoutInspector.getIsDoneCapture() && ScreenCapture.isDoneVerity) || waitCount > 30){
-                isStartCapture = false
-                break
+        isStartCapture = true
+        isStartCaptureCountDown = false
+        if(isRefresh || isCaptureScreenshot){
+            while (!mIsmCaptureDelayDialogDisappeared || mWindow?.isExpanded == true){
+                delay(100L)
+                mCaptureDelayDialog?.dismiss()
+                mCaptureDelayDialog = null
             }
         }
-        val end = System.currentTimeMillis()
-        playDoneCapturingSound(mContext)
-        mLastCostTime = end - start
-        withContext(Dispatchers.Main){
-            showInspectorDialog(mLastRefreshCount, mLastCostTime)
+        if(isCaptureScreenshot && Images.availale){
+            GlobalScope.launch {
+                
+                try{
+                    screenCapture.captureScreen(true)
+
+                }catch (e:Exception){
+                    
+                    ScreenCapture.cleanCurImg()
+                    ScreenCapture.cleanCurImgBitmap()
+                    Images.availale = false
+                }
+                // <
+            }
+        }else{
+            ScreenCapture.isDoneVerity = true
+            ScreenCapture.cleanCurImg()
+            ScreenCapture.cleanCurImgBitmap()
+        }
+        val isFirstCapture = isRefresh || isCaptureScreenshot || isDelayCapture
+        val hasToWait = isFirstCapture || isWaitForCapture
+        if(isFirstCapture){
+            captureStartTime = System.currentTimeMillis()
+            available = mLayoutInspector.captureCurrentWindow()
+            if(!available){
+                goToAccePage()
+                return
+            }
+        }
+        if(isAuth && hasToWait){
+            var waitCount = 0
+            while(true){
+                if((NodeInfo.isDoneCapture && ScreenCapture.isDoneVerity) || waitCount > 600){
+                    break
+                }
+                delay(100)
+                waitCount++
+            }
+        }
+        if(isFirstCapture){
+            captureCostTime = System.currentTimeMillis() - captureStartTime
         }
         Thread {
             Looper.prepare()
             mVibrator.vibrate(50)
             Looper.loop()
         }.start()
-        mLastCapture = mLayoutInspector.capture
-        delay(300L)
+        playDoneCapturingSound(mContext)
+        withContext(Dispatchers.Main){
+            showInspectorDialog()
+        }
+        delay(200L)
+        stopCapture()
         return
+    }
+    private fun goToAccePage(){
+        stopCapture()
+        Toast.makeText(
+            mContext,
+            R.string.text_no_accessibility_permission_to_capture,
+            Toast.LENGTH_SHORT
+        ).show()
+        AccessibilityServiceTool.goToAccessibilitySetting()
+    }
+    private fun stopCapture(){
+        NodeInfo.isDoneCapture = true
+        isStartCapture = false
+        isCapturing = false
+        isStartCaptureCountDown = false
+        mWindow?.setAlpha(1f)
+        mWindow?.collapse()
     }
     @Optional
     @OnClick(R.id.last_layout_bounds)
@@ -511,35 +603,30 @@ class CircularMenu(context: Context?) : Recorder.OnStateChangedListener, Capture
         mLayoutInspectDialog?.dismiss()
         mLayoutInspectDialog = null
         if (instance == null) {
-            Toast.makeText(
-                mContext,
-                R.string.text_no_accessibility_permission_to_capture,
-                Toast.LENGTH_SHORT
-            ).show()
-            AccessibilityServiceTool.goToAccessibilitySetting()
+            goToAccePage()
             return
         }
-        // Added by ibozo - 2024/11/04 >
-        windowCreator.invoke(mLayoutInspector.capture)?.let { FloatyService.addWindow(it) }
-        // <
-        // Annotated by ibozo - 2024/11/04 >
-//        val progress = DialogUtils.showDialog(
-//            ThemeColorMaterialDialogBuilder(mContext)
-//                .content(R.string.text_layout_inspector_is_dumping)
-//                .canceledOnTouchOutside(false)
-//                .progress(true, 0)
-//                .build()
-//        )
-//        mCaptureDeferred?.promise()
-//            ?.then({ capture ->
-//                mActionViewIcon?.post {
-//                    if (!progress.isCancelled) {
-//                        progress.dismiss()
-//                        windowCreator.invoke(capture)?.let { FloatyService.addWindow(it) }
+        // Modified by ibozo - 2024/11/04 >
+//        if(isRefresh){
+            windowCreator.invoke(mLayoutInspector.capture)?.let { FloatyService.addWindow(it) }
+//        }else{
+//            val progress = DialogUtils.showDialog(
+//                ThemeColorMaterialDialogBuilder(mContext)
+//                    .content(R.string.text_layout_inspector_is_dumping)
+//                    .canceledOnTouchOutside(false)
+//                    .progress(true, 0)
+//                    .build()
+//            )
+//            mCaptureDeferred?.promise()
+//                ?.then({ capture ->
+//                    mActionViewIcon?.post {
+//                        if (!progress.isCancelled) {
+//                            progress.dismiss()
+//                            windowCreator.invoke(capture)?.let { FloatyService.addWindow(it) }
+//                        }
 //                    }
-//                }
-//            }) { mActionViewIcon?.post { progress.dismiss() } }
-        // <
+//                }) { mActionViewIcon?.post { progress.dismiss() } }
+//        }
     }
 
     @Optional
@@ -651,7 +738,7 @@ class CircularMenu(context: Context?) : Recorder.OnStateChangedListener, Capture
             mState = STATE_CLOSED
         }
         mRecorder.removeOnStateChangedListener(this)
-        AutoJs.getInstance().layoutInspector.removeCaptureAvailableListener(this)
+        mLayoutInspector.removeCaptureAvailableListener(this)
     }
 
     override fun onStart() {
@@ -673,10 +760,11 @@ class CircularMenu(context: Context?) : Recorder.OnStateChangedListener, Capture
     }
 
     init {
+        isAuth = Ozobi.authenticate(mContext)
         initFloaty()
         setupListeners()
         mRecorder = GlobalActionRecorder.getSingleton(context)
         mRecorder.addOnStateChangedListener(this)
-        AutoJs.getInstance().layoutInspector.addCaptureAvailableListener(this)
+        mLayoutInspector.addCaptureAvailableListener(this)
     }
 }
